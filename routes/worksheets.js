@@ -51,7 +51,7 @@ exports.createAnsweredWorksheet = function(req, res) {
 
   // TODO: for now pre-load empty answerworksheet into mongodb, and return that one (matching worksheetid)
   db.collection('answeredworksheets', function(err, collection) {
-    collection.findOne({'answerworksheet.worksheetid': worksheetid.id}, function(err, item) {
+    collection.findOne({'worksheetid': worksheetid.id}, { _id: 0}, function(err, item) {
       res.send(item);
     });
   });
@@ -66,9 +66,9 @@ exports.saveAnsweredWorksheet = function(req, res) {
 
   db.collection('answeredworksheets', function(err, collection) {
     // TODO: remove prefixing the json object being saved as "answerworksheet"
-    collection.update({'answerworksheet.worksheetid': parseInt(worksheetid)}, answeredWorksheet, {safe:true}, function(err, result) {
+    collection.update({'worksheetid': parseInt(worksheetid)}, answeredWorksheet, {safe:true}, function(err, result) {
       if (err) {
-        console.log('Error updating wine: ' + err);
+        console.log('Error updating answerworksheet: ' + err);
         res.send({'error':'An error has occurred'});
       } else {
         console.log('' + result + ' document(s) updated');
@@ -83,7 +83,7 @@ exports.findAnsweredWorksheetById = function(req, res) {
   console.log('Retrieving worksheet: ' + worksheetid);
 
   db.collection('answeredworksheets', function(err, collection) {
-    collection.findOne({'answerworksheet.worksheetid': parseInt(worksheetid)}, function(err, item) {
+    collection.findOne({'worksheetid': parseInt(worksheetid)}, { _id: 0}, function(err, item) {
       res.send(item);
     });
   });
