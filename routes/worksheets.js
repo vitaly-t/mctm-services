@@ -9,7 +9,6 @@ db = new Db('local', server);
 
 db.open(function(err, db) {
     if(!err) {
-        console.log("Connected to 'local' database");
         db.collection('worksheets', {strict:true}, function(err, collection) {
             if (err) {
                 //console.log("The 'worksheets' collection doesn't exist. Creating it with sample data...");
@@ -34,44 +33,44 @@ exports.findById = function(req, res) {
 };
 
 exports.createAnsweredWorksheet = function(req, res) {
-  var worksheetid = req.body;
-  console.log('creating answeredWorksheet: ' + JSON.stringify(worksheetid));
-/*
+  var worksheetid = +req.params.worksheetid;
+  var answeredworksheet = req.body.answeredworksheet;
+
   db.collection('answeredworksheets', function(err, collection) {
-    collection.insert(answeredWorksheet, {safe: true}, function(err, result) {
+    collection.insert(answeredworksheet, {safe: true, _id: 0}, function(err, result) {
       if (err) {
         res.send({'error':'An error has occurred'});
       } else {
-        console.log('Success: ' + JSON.stringify(result[0]));
-        res.send(result[0]);
+        console.log('Success: ' + JSON.stringify(result.ops[0]));
+//        res.send(result.ops[0]);
+
+        // TODO: return this object to requestor from here
+
       }
     });
   });
-  */
 
   // TODO: for now pre-load empty answerworksheet into mongodb, and return that one (matching worksheetid)
   db.collection('answeredworksheets', function(err, collection) {
-    collection.findOne({'worksheetid': worksheetid.id}, { _id: 0}, function(err, item) {
+    collection.findOne({'worksheetid': worksheetid, 'id': answeredworksheet.id}, { _id: 0}, function(err, item) {
       res.send(item);
     });
   });
-
 };
 
 exports.saveAnsweredWorksheet = function(req, res) {
-  var worksheetid = req.params.id;
+  var worksheetid = +req.params.worksheetid;
+  var id = +req.params.id;
   var answeredWorksheet = req.body;
-  console.log('Updating answeredworksheet: ' + worksheetid);
-  console.log(JSON.stringify(answeredWorksheet));
 
+  console.log('calling saveanser');
   db.collection('answeredworksheets', function(err, collection) {
-    // TODO: remove prefixing the json object being saved as "answerworksheet"
-    collection.update({'worksheetid': parseInt(worksheetid)}, answeredWorksheet, {safe:true}, function(err, result) {
+    collection.update({'worksheetid': worksheetid, 'id': id}, answeredWorksheet, {safe:true}, function(err, result) {
       if (err) {
-        console.log('Error updating answerworksheet: ' + err);
+        console.log(err);
         res.send({'error':'An error has occurred'});
       } else {
-        console.log('' + result + ' document(s) updated');
+        console.log(answeredWorksheet);
         res.send(answeredWorksheet);
       }
     });
@@ -80,10 +79,20 @@ exports.saveAnsweredWorksheet = function(req, res) {
 
 exports.findAnsweredWorksheetById = function(req, res) {
   var worksheetid = req.params.id;
-  console.log('Retrieving worksheet: ' + worksheetid);
 
   db.collection('answeredworksheets', function(err, collection) {
     collection.findOne({'worksheetid': parseInt(worksheetid)}, { _id: 0}, function(err, item) {
+      res.send(item);
+    });
+  });
+};
+
+exports.findAnsweredWorksheetById2 = function(req, res) {
+  var worksheetid = +req.params.worksheetid;
+  var id = +req.params.id;
+
+  db.collection('answeredworksheets', function(err, collection) {
+    collection.findOne({'worksheetid': worksheetid, 'id': id}, { _id: 0}, function(err, item) {
       res.send(item);
     });
   });

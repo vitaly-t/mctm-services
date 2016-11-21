@@ -14,9 +14,12 @@ app.use(bodyParser.json())
 
 app.get('/worksheets', worksheets.findAll);
 
-app.post('/answeredworksheets', worksheets.createAnsweredWorksheet)
-app.put('/answeredworksheets/:id', worksheets.saveAnsweredWorksheet);
+app.post('/answeredworksheets/:worksheetid', worksheets.createAnsweredWorksheet)
+
+app.put('/answeredworksheets/:worksheetid/:id', worksheets.saveAnsweredWorksheet);
+
 app.get('/answeredworksheets/:id', worksheets.findAnsweredWorksheetById);
+app.get('/answeredworksheets/:worksheetid/:id', worksheets.findAnsweredWorksheetById2);
 
 app.listen(8888);
 console.log('Listening on port 8888...');
