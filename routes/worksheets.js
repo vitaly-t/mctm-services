@@ -23,7 +23,7 @@ exports.findAll = function(req, res) {
 
     db.collection('worksheets', function(err, collection) {
       collection.find().toArray(function(err, items) {
-        res.send(items[0]);
+        res.send(items);
       });
     });
 };
@@ -96,4 +96,14 @@ exports.findAnsweredWorksheetById2 = function(req, res) {
       res.send(item);
     });
   });
+};
+
+exports.getStats = function(req, res) {
+    //res.send([{name:'wine1'}, {name:'wine2'}, {name:'wine3'}]);
+
+    db.collection('worksheets', function(err, collection) {
+      collection.find({}, { _id: 0, id: 1, description: 1}).toArray(function(err, items) {
+        res.send(items);
+      });
+    });
 };
