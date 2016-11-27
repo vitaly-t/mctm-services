@@ -24,6 +24,10 @@ app.get('/answeredworksheets/:id', worksheets.findAnsweredWorksheetById);
 app.get('/answeredworksheets/:worksheetid/:id', worksheets.findAnsweredWorksheetById2);
 
 app.get('/mathworks/stats', mathworks.getStats);
+app.get('/mathworks/worksheets/new', mathworks.getNewWorksheetsMetadata);
+app.get('/mathworks/worksheets/inprogress', mathworks.getInprogressWorksheetsMetadata);
+app.get('/mathworks/worksheets/completed', mathworks.getCompletedWorksheetsMetadata);
+
 app.get('/mathworks/worksheet/:id', mathworks.findWorksheetByAlternateId);
 app.post('/mathworks/answeredworksheet/:worksheetid', mathworks.createAnsweredWorksheet);
 app.get('/mathworks/answeredworksheet/:worksheetid/:id', mathworks.findAnsweredWorksheetById);

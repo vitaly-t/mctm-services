@@ -23,6 +23,49 @@ exports.getStats = function(req, res) {
   });
 };
 
+exports.getNewWorksheetsMetadata = function(req, res) {
+
+  db.manyOrNone('select coalesce(alternate_id, id) as "id", description ' +
+      'from worksheet w ' +
+      'where not exists(select 1 from answered_worksheet a where a.worksheet_id = w.alternate_id)')
+    .then(function(data) {
+      res.status(200).json(data);
+    })
+    .catch(function(error) {
+      console.log("ERROR (getNewWorksheetsMetadata): ", error.message || error);
+      res.send({'error':'An error has occurred'});
+    });
+
+};
+
+exports.getInprogressWorksheetsMetadata = function(req, res) {
+
+  db.manyOrNone('select coalesce(w.alternate_id, w.id) as "id", w.description ' +
+    'from worksheet w inner join answered_worksheet a on (a.worksheet_id = w.alternate_id and a.status=$1)', ['in-progress'])
+    .then(function(data) {
+      res.status(200).json(data);
+    })
+    .catch(function(error) {
+      console.log("ERROR (getInprogressWorksheetsMetadata): ", error.message || error);
+      res.send({'error':'An error has occurred'});
+    });
+};
+
+exports.getCompletedWorksheetsMetadata = function(req, res) {
+
+  db.manyOrNone('select coalesce(w.alternate_id, w.id) as "id", w.description ' +
+    'from worksheet w inner join answered_worksheet a on (a.worksheet_id = w.alternate_id and a.status=$1)', ['done'])
+    .then(function(data) {
+      res.status(200).json(data);
+    })
+    .catch(function(error) {
+      console.log("ERROR (getCompletedWorksheetsMetadata): ", error.message || error);
+      res.send({'error':'An error has occurred'});
+    });
+
+};
+
+
 exports.findWorksheetByAlternateId = function(req, res) {
   var worksheetid = +req.params.id;
 
