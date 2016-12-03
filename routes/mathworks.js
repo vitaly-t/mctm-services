@@ -115,8 +115,8 @@ exports.saveAnsweredWorksheet = function(req, res) {
   var id = +req.params.id;
   var answeredWorksheet = req.body;
 
-  db.none('update answered_worksheet set ANSWEREDQUESTIONS=$1 where worksheet_id=$2 and id=$3',
-    [JSON.stringify(answeredWorksheet.answeredquestions), worksheetid, id])
+  db.none('update answered_worksheet set ANSWEREDQUESTIONS=$1, status=$2 where worksheet_id=$3 and id=$4',
+    [JSON.stringify(answeredWorksheet.answeredquestions), answeredWorksheet.status, worksheetid, id])
     .then(function() {
       db.one('select * from answered_worksheet where worksheet_id=$1 and id=$2', [worksheetid, id])
         .then(function(data) {
