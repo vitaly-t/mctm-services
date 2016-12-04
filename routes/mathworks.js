@@ -40,7 +40,7 @@ exports.getNewWorksheetsMetadata = function(req, res) {
 
 exports.getInprogressWorksheetsMetadata = function(req, res) {
 
-  db.manyOrNone('select coalesce(w.alternate_id, w.id) as "id", w.description ' +
+  db.manyOrNone('select coalesce(w.alternate_id, w.id) as "id", w.description, a.id as "answeredWorksheetId", 0 as "lastQuestionIndex" ' +
     'from worksheet w inner join answered_worksheet a on (a.worksheet_id = w.alternate_id and a.status=$1)', ['in-progress'])
     .then(function(data) {
       res.status(200).json(data);
@@ -53,8 +53,10 @@ exports.getInprogressWorksheetsMetadata = function(req, res) {
 
 exports.getCompletedWorksheetsMetadata = function(req, res) {
 
-  db.manyOrNone('select coalesce(w.alternate_id, w.id) as "id", w.description ' +
-    'from worksheet w inner join answered_worksheet a on (a.worksheet_id = w.alternate_id and a.status=$1)', ['done'])
+  db.manyOrNone('select coalesce(w.alternate_id, w.id) as "id", w.description, a.id as "lastAnsweredWorksheetId" ' +
+    'from worksheet w inner join answered_worksheet a on (a.worksheet_id = w.alternate_id and a.status=$1) ' +
+    'order by a.update_timestamp desc ' +
+    'fetch first 1 rows only', ['done'])
     .then(function(data) {
       res.status(200).json(data);
     })
@@ -78,8 +80,8 @@ exports.findWorksheetByAlternateId = function(req, res) {
 exports.createAnsweredWorksheet = function(req, res) {
   var worksheetid = +req.params.worksheetid;
 
-  db.one('insert into answered_worksheet(WORKSHEET_ID) ' +
-    'values($1) returning id', [worksheetid])
+  db.one('insert into answered_worksheet(WORKSHEET_ID, CREATE_TIMESTAMP, CREATED_BY, CREATE_MODULE) ' +
+    'values($1, $2, $3, $4) returning id', [worksheetid, new Date(), 'service', 'mathworks.js'])
     .then(function(data) {
       db.one('select a.id, w.alternate_id as "worksheetid", a.answeredquestions ' +
           ' from answered_worksheet a inner join worksheet w on (a.worksheet_id = w.alternate_id) ' +
@@ -115,16 +117,23 @@ exports.saveAnsweredWorksheet = function(req, res) {
   var id = +req.params.id;
   var answeredWorksheet = req.body;
 
-  db.none('update answered_worksheet set ANSWEREDQUESTIONS=$1, status=$2 where worksheet_id=$3 and id=$4',
-    [JSON.stringify(answeredWorksheet.answeredquestions), answeredWorksheet.status, worksheetid, id])
+  db.none('update answered_worksheet set ANSWEREDQUESTIONS=$1, ' +
+    'status=$2, update_timestamp=$3, UPDATED_BY=$4, UPDATE_MODULE=$5 where worksheet_id=$6 and id=$7',
+      [JSON.stringify(answeredWorksheet.answeredquestions), answeredWorksheet.status,
+      new Date(), 'service', 'mathworks.js', worksheetid, id])
     .then(function() {
-      db.one('select * from answered_worksheet where worksheet_id=$1 and id=$2', [worksheetid, id])
-        .then(function(data) {
-          res.status(200).json(data);
-        })
+      getAnsweredWorksheet(worksheetid, id, res);
     })
     .catch(function(error) {
       console.log("ERROR (saveAnsweredWorksheet): ", error.message || error);
       res.send({'error':'An error has occurred'});
     });
 };
+
+function getAnsweredWorksheet(worksheetid, id, res) {
+  // we need ORM to do database-to-app layer mappings
+  db.one('select id, worksheet_id as "worksheetid" from answered_worksheet where worksheet_id=$1 and id=$2', [worksheetid, id])
+    .then(function(data) {
+        res.status(200).json(data);
+    });
+}
