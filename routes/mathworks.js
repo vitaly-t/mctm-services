@@ -90,7 +90,7 @@ exports.findWorksheetByAlternateId = function(req, res) {
 exports.findWorksheetByAlternateId2 = function(req, res) {
   var worksheetid = +req.params.id;
 
-  db.one('select w.alternate_id as "id", w.type, w.description, json_agg(qb.question) as questions ' +
+  db.one('select w.alternate_id as "id", w.type, w.description, json_agg(jsonb_build_object(\'id\', wq.question_number) || qb.question) as questions ' +
       'from worksheet w join worksheet_questions wq on w.id=wq.worksheet_id ' +
       'join question_bank qb on qb.id=wq.question_id ' +
       'where w.alternate_id=$1 ' +

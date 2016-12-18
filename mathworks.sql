@@ -95,6 +95,7 @@ CREATE TABLE worksheet(
 
 CREATE TABLE worksheet_questions(
 	WORKSHEET_ID INTEGER NOT NULL,
+	QUESTION_NUMBER INTEGER NOT NULL,
 	QUESTION_ID INTEGER NOT NULL,
 
 	CONSTRAINT worksheet_questions_worksheet_id_fkey FOREIGN KEY(WORKSHEET_ID)
@@ -197,7 +198,7 @@ VALUES
 		"answer": "B"
 		}', 'arithmetic', 'divisibility', NOW(), 'manual', 'sql');
 
-INSERT INTO worksheet_questions(WORKSHEET_ID, QUESTION_ID)
+INSERT INTO worksheet_questions(WORKSHEET_ID, QUESTION_NUMBER, QUESTION_ID)
 VALUES
-	(1, 1),
-	(1, 2);
+	(1, 10, 1),
+	(1, 11, 2);
