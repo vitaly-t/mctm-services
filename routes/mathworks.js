@@ -18,9 +18,19 @@ exports.test = function(req, res) {
 
 exports.getStats = function(req, res) {
 
-  db.many('select coalesce(alternate_id, id) as "id", description from worksheet').then(function(data) {
-    res.status(200).json(data);
-  });
+  db.many('select a.worksheet_id as "worksheetid", w.description, a.id as "answeredworksheetid", ' +
+      ' jsonb_array_length(w.questions) as "totalqcnt", jsonb_array_length(a.answeredquestions) as answeredqcnt, ' +
+      ' 0 as correctcnt, ' +
+      ' 0 as incorrectcnt, 0 as totaltime ' +
+      'from answered_worksheet a join worksheet w on a.worksheet_id = w.alternate_id')
+    .then(function(data) {
+        res.status(200).json(data);
+    })
+    .catch(function(error) {
+      console.log("ERROR (getInprogressWorksheetsMetadata): ", error.message || error);
+      res.send({'error':'An error has occurred'});
+    });
+
 };
 
 exports.getNewWorksheetsMetadata = function(req, res) {
@@ -74,6 +84,23 @@ exports.findWorksheetByAlternateId = function(req, res) {
   db.one('select alternate_id as "id", type, description, questions from worksheet where alternate_id=$1', [worksheetid])
     .then(function(data) {
       res.status(200).json(data);
+    });
+};
+
+exports.findWorksheetByAlternateId2 = function(req, res) {
+  var worksheetid = +req.params.id;
+
+  db.one('select w.alternate_id as "id", w.type, w.description, json_agg(qb.question) as questions ' +
+      'from worksheet w join worksheet_questions wq on w.id=wq.worksheet_id ' +
+      'join question_bank qb on qb.id=wq.question_id ' +
+      'where w.alternate_id=$1 ' +
+      'group by w.alternate_id, w.type, w.description ', [worksheetid])
+    .then(function(data) {
+      res.status(200).json(data);
+    })
+    .catch(function(error) {
+      console.log("ERROR (findWorksheetByAlternateId2): ", error.message || error);
+      res.send({'error':'An error has occurred'});
     });
 };
 
