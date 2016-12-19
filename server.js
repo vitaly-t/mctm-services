@@ -29,7 +29,6 @@ app.get('/mathworks/worksheets/inprogress', mathworks.getInprogressWorksheetsMet
 app.get('/mathworks/worksheets/completed', mathworks.getCompletedWorksheetsMetadata);
 
 app.get('/mathworks/worksheet/:id', mathworks.findWorksheetByAlternateId);
-app.get('/mathworks/worksheet2/:id', mathworks.findWorksheetByAlternateId2);
 
 app.post('/mathworks/answeredworksheet/:worksheetid', mathworks.createAnsweredWorksheet);
 app.get('/mathworks/answeredworksheet/:worksheetid/:id', mathworks.findAnsweredWorksheetById);

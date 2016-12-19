@@ -3,6 +3,7 @@
 --DROP DATABASE IF EXISTS mathworks;
 --CREATE DATABASE mathworks;
 
+DROP TABLE answered_worksheet_questions;
 DROP TABLE answered_worksheet;
 DROP TABLE worksheet_questions;
 DROP TABLE worksheet;
@@ -75,12 +76,31 @@ CREATE TABLE question_bank (
 
 );
 
+/*
 CREATE TABLE worksheet(
 	ID SERIAL PRIMARY KEY NOT NULL,
 	ALTERNATE_ID INTEGER NOT NULL UNIQUE,
 	TYPE VARCHAR(50) NOT NULL,
 	DESCRIPTION VARCHAR(255),
 	QUESTIONS JSONB NOT NULL,
+	CREATE_TIMESTAMP TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+	CREATED_BY VARCHAR(30) NOT NULL,
+	CREATE_MODULE VARCHAR(50) NOT NULL,
+	UPDATE_TIMESTAMP TIMESTAMP WITH TIME ZONE NULL,
+	UPDATED_BY VARCHAR(30) NULL,
+	UPDATE_MODULE VARCHAR(50) NULL,
+
+	CONSTRAINT worksheet_worksheet_type_id_fkey FOREIGN KEY(TYPE)
+		REFERENCES worksheet_type(TYPE) MATCH SIMPLE
+		ON UPDATE NO ACTION ON DELETE NO ACTION
+);
+*/
+
+CREATE TABLE worksheet(
+	ID SERIAL PRIMARY KEY NOT NULL,
+	ALTERNATE_ID INTEGER NOT NULL UNIQUE,
+	TYPE VARCHAR(50) NOT NULL,
+	DESCRIPTION VARCHAR(255),
 	CREATE_TIMESTAMP TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 	CREATED_BY VARCHAR(30) NOT NULL,
 	CREATE_MODULE VARCHAR(50) NOT NULL,
@@ -129,6 +149,19 @@ CREATE TABLE answered_worksheet (
 
 );
 
+CREATE TABLE answered_worksheet_questions (
+	ANSWERED_WORKSHEET_ID INTEGER NOT NULL,
+	QUESTION_ID INTEGER NOT NULL,
+
+	CONSTRAINT answered_worksheet_questions_answered_worksheet_id_fkey FOREIGN KEY(ANSWERED_WORKSHEET_ID)
+		REFERENCES answered_worksheet(ID) MATCH SIMPLE
+		ON UPDATE NO ACTION ON DELETE NO ACTION,
+	CONSTRAINT answered_worksheet_questions_question_bank_id_fkey FOREIGN KEY(QUESTION_ID)
+		REFERENCES question_bank(ID) MATCH SIMPLE
+		ON UPDATE NO ACTION ON DELETE NO ACTION
+
+);
+
 GRANT ALL PRIVILEGES ON TABLE worksheet_type TO mathapp;
 GRANT ALL PRIVILEGES ON TABLE worksheet TO mathapp;
 GRANT ALL PRIVILEGES ON TABLE answered_worksheet TO mathapp;
@@ -138,6 +171,7 @@ GRANT ALL PRIVILEGES ON TABLE sub_category_type TO mathapp;
 GRANT ALL PRIVILEGES ON TABLE question_bank TO mathapp;
 GRANT ALL PRIVILEGES ON TABLE question_bank_id_seq TO mathapp;
 GRANT ALL PRIVILEGES ON TABLE worksheet_questions TO mathapp;
+GRANT ALL PRIVILEGES ON TABLE answered_worksheet_questions TO mathapp;
 
 INSERT INTO worksheet_type(TYPE, DESCRIPTION)
 VALUES('sprint', 'mctm sprint');
@@ -147,6 +181,7 @@ VALUES('in-progress', 'answering is in-progress');
 INSERT INTO answered_worksheet_status(STATUS, DESCRIPTION)
 VALUES('done', 'answering is done');
 
+/*
 INSERT INTO worksheet(ID, ALTERNATE_ID, TYPE, DESCRIPTION, CREATE_TIMESTAMP, CREATED_BY, CREATE_MODULE, QUESTIONS)
 VALUES(1, 1234, 'sprint', 'practice sheet 1', NOW(), 'manual', 'sql', '[
 	{ "id" : 10, "question" : "4 tens minus 5 ones plus 6 hundreds equals how much?",
@@ -166,6 +201,11 @@ VALUES(1, 1234, 'sprint', 'practice sheet 1', NOW(), 'manual', 'sql', '[
 		"answer": "B"
 	}
 	]');
+*/
+
+INSERT INTO worksheet(ID, ALTERNATE_ID, TYPE, DESCRIPTION, CREATE_TIMESTAMP, CREATED_BY, CREATE_MODULE)
+VALUES(1, 1234, 'sprint', 'practice sheet 1', NOW(), 'manual', 'sql');
+
 
 INSERT INTO category_type(ID, NAME, DESCRIPTION, CREATE_TIMESTAMP, CREATED_BY, CREATE_MODULE)
 VALUES

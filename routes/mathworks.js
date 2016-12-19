@@ -17,7 +17,7 @@ exports.test = function(req, res) {
 };
 
 exports.getStats = function(req, res) {
-
+/*
   db.many('select a.worksheet_id as "worksheetid", w.description, a.id as "answeredworksheetid", ' +
       ' jsonb_array_length(w.questions) as "totalqcnt", jsonb_array_length(a.answeredquestions) as answeredqcnt, ' +
       ' 0 as correctcnt, ' +
@@ -27,7 +27,20 @@ exports.getStats = function(req, res) {
         res.status(200).json(data);
     })
     .catch(function(error) {
-      console.log("ERROR (getInprogressWorksheetsMetadata): ", error.message || error);
+      console.log("ERROR (getStats): ", error.message || error);
+      res.send({'error':'An error has occurred'});
+    });
+*/
+  db.many('select a.worksheet_id as "worksheetid", w.description, a.id as "answeredworksheetid", ' +
+      ' 0 as "totalqcnt", jsonb_array_length(a.answeredquestions) as answeredqcnt, ' +
+      ' 0 as correctcnt, ' +
+      ' 0 as incorrectcnt, 0 as totaltime ' +
+      'from answered_worksheet a join worksheet w on a.worksheet_id = w.alternate_id')
+    .then(function(data) {
+        res.status(200).json(data);
+    })
+    .catch(function(error) {
+      console.log("ERROR (getStats): ", error.message || error);
       res.send({'error':'An error has occurred'});
     });
 
@@ -77,17 +90,7 @@ exports.getCompletedWorksheetsMetadata = function(req, res) {
 
 };
 
-
 exports.findWorksheetByAlternateId = function(req, res) {
-  var worksheetid = +req.params.id;
-
-  db.one('select alternate_id as "id", type, description, questions from worksheet where alternate_id=$1', [worksheetid])
-    .then(function(data) {
-      res.status(200).json(data);
-    });
-};
-
-exports.findWorksheetByAlternateId2 = function(req, res) {
   var worksheetid = +req.params.id;
 
   db.one('select w.alternate_id as "id", w.type, w.description, json_agg(jsonb_build_object(\'id\', wq.question_number) || qb.question) as questions ' +
@@ -144,6 +147,40 @@ exports.saveAnsweredWorksheet = function(req, res) {
   var id = +req.params.id;
   var answeredWorksheet = req.body;
 
+  db.tx(function(t) {
+    var q1 = this.none('update answered_worksheet set ANSWEREDQUESTIONS=$1, ' +
+        'status=$2, update_timestamp=$3, UPDATED_BY=$4, UPDATE_MODULE=$5 where worksheet_id=$6 and id=$7',
+          [JSON.stringify(answeredWorksheet.answeredquestions), answeredWorksheet.status,
+          new Date(), 'service', 'mathworks.js', worksheetid, id]);
+
+    var worksheetQs = [];
+
+    answeredWorksheet.answeredquestions.forEach(function(obj) {
+      worksheetQs.push(obj.question.id);
+    })
+
+    console.log(JSON.stringify(worksheetQs));
+
+    var q2 = this.none('insert into answered_worksheet_questions(ANSWERED_WORKSHEET_ID, QUESTION_ID) ' +
+                'select $1, wq.question_id ' +
+                'from worksheet_questions wq join worksheet w on wq.worksheet_id = w.id ' +
+                'where w.alternate_id=$2 ' +
+                'and wq.question_number in ($3:csv)', [id, answeredWorksheet.worksheet_id, worksheetQs]
+            );
+
+    return this.batch([q1, q2]);
+  })
+  .then(function(data) {
+    console.log(data);
+    getAnsweredWorksheet(worksheetid, id, res);
+  })
+  .catch(function(error) {
+    console.log("ERROR (saveAnsweredWorksheet): ", error.message || error);
+    res.send({'error':'An error has occurred'});
+  });
+
+
+  /*
   db.none('update answered_worksheet set ANSWEREDQUESTIONS=$1, ' +
     'status=$2, update_timestamp=$3, UPDATED_BY=$4, UPDATE_MODULE=$5 where worksheet_id=$6 and id=$7',
       [JSON.stringify(answeredWorksheet.answeredquestions), answeredWorksheet.status,
@@ -155,6 +192,7 @@ exports.saveAnsweredWorksheet = function(req, res) {
       console.log("ERROR (saveAnsweredWorksheet): ", error.message || error);
       res.send({'error':'An error has occurred'});
     });
+    */
 };
 
 function getAnsweredWorksheet(worksheetid, id, res) {
