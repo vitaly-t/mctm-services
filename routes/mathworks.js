@@ -42,15 +42,16 @@ exports.getStats = function(req, res) {
       '                           group by wi.alternate_id, wi.description, wi.id) w on a.worksheet_id = w.alternate_id ' +
       '   left outer join (select awqi.answered_worksheet_id, count(awqi.answered_worksheet_id) as answeredqcnt, ' +
       '                     sum(extract(epoch from to_timestamp(answeredquestion#>>\'{answerMetric,end}\', ' +
-      '                                                \'YYYY-MM-DD HH2:MI:SS.MS\')::timestamp at time zone \'00:00\' ' +
+      '                                                \'YYYY-MM-DD HH24:MI:SS.MS\')::timestamp at time zone \'00:00\' ' +
       '                                              - to_timestamp(answeredquestion#>>\'{answerMetric,start}\', ' +
-      '                                                  \'YYYY-MM-DD HH2:MI:SS.MS\')::timestamp at time zone \'00:00\')) as totaltime ' +
+      '                                                  \'YYYY-MM-DD HH24:MI:SS.MS\')::timestamp at time zone \'00:00\')) as totaltime ' +
       '                 from answered_worksheet_questions awqi ' +
       '                 group by awqi.answered_worksheet_id) awq on awq.answered_worksheet_id = a.id ' +
       '   left outer join (select awqi.answered_worksheet_id, count(awqi.answered_worksheet_id) as correctcnt ' +
       '                 from answered_worksheet_questions awqi ' +
       '                 where awqi.answeredquestion#>\'{answer, answer}\' = awqi.answeredquestion#>\'{question, answer}\' ' +
-      '                 group by awqi.answered_worksheet_id, awqi.answered_worksheet_id) awqc on awqc.answered_worksheet_id = a.id ')
+      '                 group by awqi.answered_worksheet_id, awqi.answered_worksheet_id) awqc on awqc.answered_worksheet_id = a.id ' +
+      ' order by a.worksheet_id, a.id desc')
     .then(function(data) {
         res.status(200).json(data);
     })
@@ -158,7 +159,8 @@ exports.findAnsweredWorksheetById = function(req, res) {
 */
 
   db.one('select aw.id, aw.worksheet_id as "worksheetid", aw.status, ' +
-      '(case when jsonb_agg(awq.ANSWEREDQUESTION)=jsonb_build_array(null) then jsonb_build_array() else jsonb_agg(awq.ANSWEREDQUESTION) end) as answeredquestions ' +
+      '(case when jsonb_agg(awq.ANSWEREDQUESTION)=jsonb_build_array(null) then jsonb_build_array() else jsonb_agg(awq.ANSWEREDQUESTION) end) as answeredquestions, ' +
+      ' aw.create_timestamp as "startTime", aw.update_timestamp as "endTime" ' +
       'from answered_worksheet aw left outer join answered_worksheet_questions awq on awq.ANSWERED_WORKSHEET_ID = aw.ID ' +
       'where aw.worksheet_id=$1 and aw.id=$2 ' +
       'group by aw.id, aw.worksheet_id, aw.status', [worksheetid, id])
@@ -232,5 +234,36 @@ function getAnsweredWorksheet(worksheetid, id, res) {
   db.one('select id, worksheet_id as "worksheetid" from answered_worksheet where worksheet_id=$1 and id=$2', [worksheetid, id])
     .then(function(data) {
         res.status(200).json(data);
+    });
+}
+
+exports.getStatsByAnswerWorksheetId = function(req, res) {
+  db.many('select a.worksheet_id as "worksheetid", w.description, a.id as "answeredworksheetid", ' +
+      ' COALESCE(w.totalqcnt, 0) as "totalqcnt", COALESCE(awq.answeredqcnt, 0) as "answeredqcnt", ' +
+      ' COALESCE(awqc.correctcnt, 0) as "correctcnt", ' +
+      ' (COALESCE(awq.answeredqcnt, 0) - COALESCE(awqc.correctcnt, 0)) as incorrectcnt, ' +
+      ' (COALESCE(w.totalqcnt, 0) - COALESCE(awq.answeredqcnt, 0)) as skipcnt, ' +
+      ' awq.totaltime ' +
+      'from answered_worksheet a join (select wi.alternate_id, wi.description, count(wi.id) as totalqcnt ' +
+      '                           from worksheet wi join worksheet_questions wqi on wqi.worksheet_id = wi.id ' +
+      '                           group by wi.alternate_id, wi.description, wi.id) w on a.worksheet_id = w.alternate_id ' +
+      '   left outer join (select awqi.answered_worksheet_id, count(awqi.answered_worksheet_id) as answeredqcnt, ' +
+      '                     sum(extract(epoch from to_timestamp(answeredquestion#>>\'{answerMetric,end}\', ' +
+      '                                                \'YYYY-MM-DD HH2:MI:SS.MS\')::timestamp at time zone \'00:00\' ' +
+      '                                              - to_timestamp(answeredquestion#>>\'{answerMetric,start}\', ' +
+      '                                                  \'YYYY-MM-DD HH2:MI:SS.MS\')::timestamp at time zone \'00:00\')) as totaltime ' +
+      '                 from answered_worksheet_questions awqi ' +
+      '                 group by awqi.answered_worksheet_id) awq on awq.answered_worksheet_id = a.id ' +
+      '   left outer join (select awqi.answered_worksheet_id, count(awqi.answered_worksheet_id) as correctcnt ' +
+      '                 from answered_worksheet_questions awqi ' +
+      '                 where awqi.answeredquestion#>\'{answer, answer}\' = awqi.answeredquestion#>\'{question, answer}\' ' +
+      '                 group by awqi.answered_worksheet_id, awqi.answered_worksheet_id) awqc on awqc.answered_worksheet_id = a.id ' +
+      ' order by a.worksheet_id, a.id desc')
+    .then(function(data) {
+        res.status(200).json(data);
+    })
+    .catch(function(error) {
+      console.log("ERROR (getStatsByAnswerWorksheetId): ", error.message || error);
+      res.send({'error':'An error has occurred'});
     });
 }
