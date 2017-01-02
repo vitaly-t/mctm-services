@@ -186,7 +186,7 @@ exports.saveAnsweredWorksheet = function(req, res) {
           [JSON.stringify(answeredWorksheet.answeredquestions), answeredWorksheet.status,
           new Date(), 'service', 'mathworks.js', worksheetid, id]);
 */
-    var q1 = this.none('update answered_worksheet set status=$1, ' +
+    var q1 = t.none('update answered_worksheet set status=$1, ' +
         'update_timestamp=$2, UPDATED_BY=$3, UPDATE_MODULE=$4 ' +
         'where worksheet_id=$5 and id=$6',
           [answeredWorksheet.status, new Date(), 'service', 'mathworks.js',
@@ -203,7 +203,7 @@ exports.saveAnsweredWorksheet = function(req, res) {
         'values($1, $2, $3)', [id, l.question.id, l]);
     });
 
-    return this.batch([q1, q2]);
+    return t.batch([q1.concat(q2)]);
   })
   .then(function(data) {
     getAnsweredWorksheet(worksheetid, id, res);
